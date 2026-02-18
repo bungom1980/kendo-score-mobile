@@ -1679,7 +1679,7 @@ function toggleEdit(){
 
   if(AppState.editMode){
     renderTeamEditor();          // ← 開く時に生成
-    editor.style.display = "block";
+    editor.style.display = "flex";
   }else{
     editor.style.display = "none";
   }
@@ -2276,5 +2276,6 @@ if(shareBtn){
 
 
 });
+
 
 
