@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Kendo Score Mobile</title>
+
+<style>
+body{
+  margin:0;
+  font-family:system-ui,sans-serif;
+}
+
+#app{
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+}
+</style>
+</head>
+
+<body>
+
+<div id="app"></div>
+
+<script src="state.js"></script>
+<script src="ui.js"></script>
+
+<script>
+  // ==== Phase1: buildPositions テスト ====
+  console.log("TEST buildPositions");
+  console.log("3:", buildPositions(3));
+  console.log("5:", buildPositions(5));
+  console.log("6:", buildPositions(6));
+  console.log("7:", buildPositions(7));
+  console.log("10:", buildPositions(10));
+</script>
+
+</body>
+</html>
