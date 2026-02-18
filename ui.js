@@ -2228,15 +2228,10 @@ const dlBtn = document.getElementById("dlBtn");
 
 if(dlBtn){
   dlBtn.onclick = () => {
-
-    if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){
-      openPrintWindow();
-    }else{
-      downloadHTMLFile();
-    }
-
+    downloadHTMLFile();
   };
 }
+
 
 const shareBtn = document.getElementById("shareBtn");
 
@@ -2273,6 +2268,7 @@ if(shareBtn){
 
 
 });
+
 
 
 
