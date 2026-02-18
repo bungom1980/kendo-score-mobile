@@ -447,11 +447,8 @@ transform:translateY(1px);
   font-size:17px;
   font-weight:700;
 
-  position:sticky;
-  top:0;
-  background:#fff;
+
   padding:8px 0;
-  z-index:5;
 }
 
 .editorTitle.red{
@@ -2276,6 +2273,7 @@ if(shareBtn){
 
 
 });
+
 
 
 
