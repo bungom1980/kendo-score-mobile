@@ -3,6 +3,13 @@
 document.addEventListener("DOMContentLoaded", () => {
 console.log("ui.js start");
 
+/* ===== LOCAL STORAGE LOAD ===== */
+const savedState = localStorage.getItem("kendoScoreState");
+if(savedState){
+  Object.assign(AppState, JSON.parse(savedState));
+}
+
+
 function ensureMatchUIState(){
   (AppState.matches || []).forEach((m)=>{
 
@@ -197,6 +204,10 @@ if(m.firstIpponIndex === undefined){
   if(!ui.ippon2){
     ui.ippon2 = act;
   }
+}
+/* ===== LOCAL STORAGE SAVE ===== */
+function saveState(){
+  localStorage.setItem("kendoScoreState", JSON.stringify(AppState));
 }
 
 /* ===== SCORE CORE: ADD IPPON / FOUL ===== */
@@ -435,6 +446,12 @@ transform:translateY(1px);
   margin:12px 0 8px;
   font-size:17px;
   font-weight:700;
+
+  position:sticky;
+  top:0;
+  background:#fff;
+  padding:8px 0;
+  z-index:5;
 }
 
 .editorTitle.red{
@@ -590,7 +607,8 @@ color:#333;
 .editorRow input{
   width:100%;
   box-sizing:border-box;
-  padding:4px 6px;
+  padding:8px 10px;
+  font-size:16px; /* ← これが重要 */
 }
 
 /* ===== Reset Button Layout ===== */
@@ -943,29 +961,27 @@ color:#333;
   position:fixed;
   top:0;
   left:0;
-  right:0;
-  bottom:0;
+  width:100vw;
+  height:100vh;
 
-  background:rgba(0,0,0,0.4);
+  background:#fff;
 
   display:none;
-  align-items:center;
-  justify-content:center;
+  flex-direction:column;
 
   z-index:9999;
 }
 
 #teamEditor > .editorModal{
-  background:#fff;
+  flex:1;
+  overflow-y:auto;
 
-  width:90%;
-  max-width:420px;
-  max-height:90%;
-
-  overflow:auto;
+  width:100%;
+  max-width:none;
+  max-height:none;
 
   padding:16px;
-  border-radius:12px;
+  border-radius:0;
 }
 
 /* ===== Team Winner Strong Highlight ===== */
@@ -1045,13 +1061,15 @@ document.head.appendChild(st);
   dateInput.value = AppState.meta.date || "";
   sel.value = String(AppState.meta.members || 5);
 
-  nameInput.oninput = ()=>{
-    AppState.meta.name = nameInput.value;
-  };
+nameInput.oninput = ()=>{
+  AppState.meta.name = nameInput.value;
+  saveState();
+};
 
-  dateInput.onchange = ()=>{
-    AppState.meta.date = dateInput.value;
-  };
+dateInput.onchange = ()=>{
+  AppState.meta.date = dateInput.value;
+  saveState();
+};
 
 sel.onchange = ()=>{
   const n = Number(sel.value);
@@ -1576,7 +1594,8 @@ div.innerHTML = `
 
   });
 
-  updateSummary();   // ← これを追加
+  updateSummary();
+  saveState();   // ← 追加
 
 }
 
@@ -1748,13 +1767,18 @@ resetPanel.addEventListener("click", (e) => {
   renderMatches();
   if(AppState.editMode) renderTeamEditor();
 
-  resetPanel.style.display = "none";
+resetPanel.style.display = "none";
+saveState();   // ← 追加
 });
 
 // ===== INIT =====
-initMatches(AppState.meta.members || 5);
-ensureMatchUIState(); // 追加
-recalcAllMatchesFromSeq(); // 追加（任意だが推奨）
+
+if(!savedState){
+  initMatches(AppState.meta.members || 5);
+}
+
+ensureMatchUIState();
+recalcAllMatchesFromSeq();
 renderMatches();
 renderPosNav();
 renderTop();
@@ -2169,40 +2193,82 @@ if(daihyoIndex >= 0 && matches[daihyoIndex] && matches[daihyoIndex].ui){
   </div>
 
 <script>
-  // 自動印刷を嫌う場合はコメントアウト可能
-  window.addEventListener("load", () => {
-    setTimeout(() => { window.print(); }, 50);
-  });
 </script>
 </body>
 </html>`;
 }
 
-function openPDFPrintWindow(){
+function downloadHTMLFile(){
   const html = buildParentPDFHTML();
-  const w = window.open("", "_blank");
-  if(!w){
-    alert("Popup blocker prevented opening the PDF window.");
-    return;
-  }
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-  w.focus();
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "kendo-score.html";
+  document.body.appendChild(a);
+  a.click();
+
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /* ボタンに紐付け（元に戻す時はこの2行を消すだけ） */
+function openPrintWindow(){
+
+  const html = buildParentPDFHTML();
+
+  const w = window.open("", "_blank");
+  w.document.write(html);
+  w.document.close();
+
+  w.focus();
+  w.print();
+}
+
 const dlBtn = document.getElementById("dlBtn");
+
 if(dlBtn){
-  dlBtn.onclick = () => openPDFPrintWindow();
+  dlBtn.onclick = () => {
+
+    if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){
+      openPrintWindow();
+    }else{
+      downloadHTMLFile();
+    }
+
+  };
 }
 
 const shareBtn = document.getElementById("shareBtn");
-if(shareBtn){
-  // Shareは次段。現段階ではPDF生成までを確実にする
-  shareBtn.onclick = () => openPDFPrintWindow();
-}
 
+if(shareBtn){
+  shareBtn.onclick = async () => {
+
+    const html = buildParentPDFHTML();
+    const blob = new Blob([html], { type: "text/html" });
+    const file = new File([blob], "kendo-score.html", { type: "text/html" });
+
+    if(
+      navigator.share &&
+      navigator.canShare &&
+      navigator.canShare({ files:[file] })
+    ){
+      await navigator.share({
+        title: "Kendo Score",
+        files: [file]
+      });
+    }
+    else if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){
+      openPrintWindow();
+    }
+    else{
+      downloadHTMLFile();
+    }
+
+  };
+}
 /* =========================================================
    追加ブロック終了
 ========================================================= */
