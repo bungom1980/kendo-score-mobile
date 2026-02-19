@@ -258,37 +258,24 @@ const top = document.createElement("div");
         style="padding:6px;"
       ></select>
 
-<button id="dlBtn" class="iconBtn" aria-label="Download" title="Download"> 
-<svg viewBox="0 0 24 24" width="22" height="22">
-  <path d="M12 3v12"
-        stroke="currentColor"
-        stroke-width="1.4"
-        stroke-linecap="round"/>
+<button id="shareBtn" class="iconBtn" aria-label="Share" title="Share">
+<svg viewBox="0 0 24 24"
+     width="20"
+     height="20"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="1.5"
+     stroke-linecap="round"
+     stroke-linejoin="round">
 
-  <path d="M7 11l5 5 5-5"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.4"
-        stroke-linecap="round"
-        stroke-linejoin="round"/>
+  <!-- iOS寄りに小さく丸く -->
+  <rect x="6" y="11" width="12" height="9" rx="3"></rect>
 
-  <rect x="4" y="19" width="16" height="2" rx="1"
-        fill="currentColor"/>
+  <!-- 矢印を中央に -->
+  <path d="M12 14V5"></path>
+  <path d="M9.5 7.5l2.5-2.5 2.5 2.5"></path>
+
 </svg>
-</button> 
-<button id="shareBtn" class="iconBtn" aria-label="Share" title="Share"> 
-<svg viewBox="0 0 24 24" width="22" height="22">
-  <circle cx="18" cy="5" r="2" fill="currentColor"/>
-  <circle cx="6" cy="12" r="2" fill="currentColor"/>
-  <circle cx="18" cy="19" r="2" fill="currentColor"/>
-
-  <path d="M8 11l8-5M8 13l8 5"
-        stroke="currentColor"
-        stroke-width="1.4"
-        fill="none"
-        stroke-linecap="round"/>
-</svg>
-
 </button>
 
     </div>
@@ -417,16 +404,21 @@ transform:translateY(1px);
 }
 
 .iconBtn{
-  width:40px;
-  height:40px;
-  border:1px solid #ddd;
-  background:#fafafa;
-  border-radius:8px;
-  display:inline-flex;
+  width:36px;
+  height:36px;
+
+  background:#f2f2f7;
+  border:0;
+
+  border-radius:12px;   /* ← ここ重要 */
+
+  display:flex;
   align-items:center;
   justify-content:center;
-  cursor:pointer;
-  padding:0;
+
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.08),
+    inset 0 0 0 1px rgba(0,0,0,0.04); /* ← これがiOS感 */
 }
 
 .iconBtn:hover{
@@ -434,10 +426,6 @@ transform:translateY(1px);
   border-color:#999;
 }
 
-.iconBtn svg{
-  width:20px;
-  height:20px;
-}
 .iconBtn:active{
 transform:translateY(1px);
 }
@@ -446,7 +434,6 @@ transform:translateY(1px);
   margin:12px 0 8px;
   font-size:17px;
   font-weight:700;
-
 
   padding:8px 0;
 }
@@ -893,14 +880,17 @@ color:#333;
 .ipponMark{
   display:flex;
 
-  width:27px;
-  height:27px;
+  width:36px;          /* ←拡大 */
+  height:36px;         /* ←拡大 */
 
   align-items:center;
   justify-content:center;
 
+  font-size:22px;      /* ←文字を大きく */
+  font-weight:700;
+
   box-sizing:border-box;
-  border:2px solid transparent;
+  border:3px solid transparent;  /* ←太く */
   border-radius:50%;
 }
 
@@ -910,10 +900,15 @@ color:#333;
 
 /* 勝敗セル */
 .cell.result{
-  width:36px;
-  font-size:28px;   /* ← 16 → 24 に拡大 */
-  font-weight:700;  /* ← 視認性向上（任意だが推奨） */
+  width:60px;      /* ←広げる */
+  font-size:32px;  /* ←少し大きく */
+  font-weight:700;
 }
+
+.scoreTable td.cell.ipponBox{
+  padding-right:8px;
+}
+
 
 .rowName.red td{
   background:#ffd6d6;
@@ -1029,6 +1024,38 @@ color:#333;
   border-radius:3px;
 }
 
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+#lowerPanel{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+
+#matchList{
+  flex:1;
+  overflow-y:auto;
+  min-height:0;
+}
+
+#app > div {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+}
+
+
 `;
 document.head.appendChild(st);
 
@@ -1098,66 +1125,75 @@ function updateSummary(){
   let redIppon = 0;
   let whiteIppon = 0;
 
-  (AppState.matches || []).forEach(m=>{
+  (AppState.matches || []).forEach((m, i)=>{
 
     if(!m.ui) return;
+
+    const isDaihyo =
+      AppState.positions &&
+      AppState.positions[i] === "Daihyo";
+
+    // ★ Daihyoは団体集計から除外
+    if(isDaihyo) return;
 
     const r = m.ui.red;
     const w = m.ui.white;
 
+    /* ===== Ippon集計 ===== */
 
-/* Ippon集計（WBFは「2本勝ち確定」。足し算ではない） */
+    let rCnt = 0;
+    if(r.ippon2 === "WBF"){
+      rCnt = 2;
+    }else{
+      if(r.ippon1) rCnt++;
+      if(r.ippon2) rCnt++;
+    }
+    redIppon += rCnt;
 
-// Red
-let rCnt = 0;
-if(r.ippon2 === "WBF"){
-  rCnt = 2;
-}else{
-  if(r.ippon1) rCnt++;
-  if(r.ippon2) rCnt++;
-}
-redIppon += rCnt;
+    let wCnt = 0;
+    if(w.ippon2 === "WBF"){
+      wCnt = 2;
+    }else{
+      if(w.ippon1) wCnt++;
+      if(w.ippon2) wCnt++;
+    }
+    whiteIppon += wCnt;
 
-// White
-let wCnt = 0;
-if(w.ippon2 === "WBF"){
-  wCnt = 2;
-}else{
-  if(w.ippon1) wCnt++;
-  if(w.ippon2) wCnt++;
-}
-whiteIppon += wCnt;
+    /* ===== 勝敗集計 ===== */
 
-    /* 勝敗集計 */
     if(m.ui.result.red === "〇") redWin++;
     if(m.ui.result.white === "〇") whiteWin++;
 
   });
 
-document.getElementById("resRedWin").textContent   = redWin;
-document.getElementById("resWhiteWin").textContent = whiteWin;
+  document.getElementById("resRedWin").textContent   = redWin;
+  document.getElementById("resWhiteWin").textContent = whiteWin;
 
-document.getElementById("resRedIppon").textContent   = redIppon;
-document.getElementById("resWhiteIppon").textContent = whiteIppon;
+  document.getElementById("resRedIppon").textContent   = redIppon;
+  document.getElementById("resWhiteIppon").textContent = whiteIppon;
 
-/* ===== Winner Highlight (All matches finished only) ===== */
+  /* ===== Winner Highlight ===== */
 
-const rowRed = document.querySelector("#sumTable .rowRed");
-const rowWhite = document.querySelector("#sumTable .rowWhite");
+  const rowRed = document.querySelector("#sumTable .rowRed");
+  const rowWhite = document.querySelector("#sumTable .rowWhite");
 
-rowRed.classList.remove("winnerTeam");
-rowWhite.classList.remove("winnerTeam");
+  rowRed.classList.remove("winnerTeam");
+  rowWhite.classList.remove("winnerTeam");
 
-/* 団体勝敗が確定した時点で表示する */
-const majority = Math.floor((AppState.matches || []).length / 2) + 1;
+  const totalMatches =
+    (AppState.matches || []).filter((_, i)=>
+      !(AppState.positions && AppState.positions[i] === "Daihyo")
+    ).length;
 
-if(redWin >= majority){
-  rowRed.classList.add("winnerTeam");
-}
+  const majority = Math.floor(totalMatches / 2) + 1;
 
-if(whiteWin >= majority){
-  rowWhite.classList.add("winnerTeam");
-}
+  if(redWin >= majority){
+    rowRed.classList.add("winnerTeam");
+  }
+
+  if(whiteWin >= majority){
+    rowWhite.classList.add("winnerTeam");
+  }
 }
 
   /* =====================
@@ -1525,10 +1561,12 @@ function renderMatches(){
 
   pos.forEach((p,i)=>{
 
-    const div = document.createElement("div");
-    div.className = "matchCard";
-    div.id = "pos-" + i;
-    div.dataset.index = i;
+const div = document.createElement("div");
+div.className = "matchCard";
+div.id = "pos-" + i;
+div.dataset.index = i;
+
+
 
 div.innerHTML = `
   <div class="matchTitle">${AppState.positions[i] || ""}</div>
@@ -1708,6 +1746,7 @@ document.getElementById("closeEditor").onclick = toggleEdit;
 
 const resetBtn = document.getElementById("resetBtn");
 const resetPanel = document.getElementById("resetPanel");
+const shareBtn = document.getElementById("shareBtn"); 
 
 resetBtn.onclick = () => {
   resetPanel.style.display =
@@ -1768,6 +1807,174 @@ resetPanel.style.display = "none";
 saveState();   // ← 追加
 });
 
+shareBtn.addEventListener("click", async () => {
+
+  updateSummary();
+
+  const root = document.createElement("div");
+  root.style.width = "420px";              // ← 横幅縮小
+  root.style.background = "#f4f4f4";
+  root.style.padding = "24px";
+  root.style.fontFamily = "system-ui";
+  root.style.boxSizing = "border-box";
+
+  const frame = document.createElement("div");
+  frame.style.background = "#ffffff";
+  frame.style.border = "2px solid #222";
+  frame.style.borderRadius = "12px";
+  frame.style.padding = "20px";
+  root.appendChild(frame);
+
+  /* ===== タイトル ===== */
+  const title = document.createElement("div");
+  title.style.fontSize = "20px";
+  title.style.fontWeight = "700";
+  title.style.marginBottom = "6px";
+  title.textContent = AppState.meta.name || "";
+  frame.appendChild(title);
+
+  const vs = document.createElement("div");
+  vs.style.fontSize = "14px";
+  vs.style.marginBottom = "16px";
+  vs.textContent =
+    `${AppState.teams.red.name} vs ${AppState.teams.white.name}`;
+  frame.appendChild(vs);
+
+  /* ===== サマリー ===== */
+  const summary = document.createElement("div");
+  summary.style.border = "2px solid #1f3a3a";
+  summary.style.borderRadius = "14px";
+  summary.style.padding = "14px";
+  summary.style.marginBottom = "20px";
+  summary.style.fontSize = "14px";
+
+  summary.innerHTML = `
+    <div style="display:flex;justify-content:space-between;">
+      <div style="font-weight:700;">${AppState.teams.red.name}</div>
+      <div>${resRedWin.textContent} Wins · ${resRedIppon.textContent} Ippon</div>
+    </div>
+    <div style="border-top:1px solid #ccc;margin:8px 0;"></div>
+    <div style="display:flex;justify-content:space-between;">
+      <div style="font-weight:700;">${AppState.teams.white.name}</div>
+      <div>${resWhiteWin.textContent} Wins · ${resWhiteIppon.textContent} Ippon</div>
+    </div>
+  `;
+  frame.appendChild(summary);
+
+  /* ===== Matches ===== */
+  const matchTitle = document.createElement("div");
+  matchTitle.style.fontSize = "16px";
+  matchTitle.style.fontWeight = "700";
+  matchTitle.style.marginBottom = "8px";
+  matchTitle.textContent = "Matches";
+  frame.appendChild(matchTitle);
+
+AppState.matches.forEach((m, i) => {
+
+  const block = document.createElement("div");
+
+  const isDaihyo =
+    AppState.positions &&
+    AppState.positions[i] === "Daihyo";
+
+  block.style.borderTop = isDaihyo
+    ? "4px solid #666"
+    : "1px solid #ddd";
+
+  block.style.padding = "10px 0";
+
+    const pos = AppState.positions[i] || "";
+
+    block.innerHTML = `
+      <div style="font-weight:700;margin-bottom:4px;font-size:13px;">
+        ${pos}
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:14px;">
+          ${AppState.teams.red.players[i] || ""}
+        </div>
+
+<div style="
+  width:90px;
+  display:flex;
+  justify-content:flex-start;
+  align-items:center;
+  gap:6px;
+  font-size:18px;
+">
+  ${getIpponCell(i,"red",0)}
+  ${getIpponCell(i,"red",1)}
+  <span style="
+    font-size:14px;
+    font-weight:700;
+    margin-left:2px;
+  ">
+    ${getFoulMark(i,"red")}
+  </span>
+</div>
+
+        <div style="font-size:28px;font-weight:700;">   <!-- ← 〇×拡大 -->
+          ${getResultMark(i,"red")}
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <div style="font-size:14px;">
+          ${AppState.teams.white.players[i] || ""}
+        </div>
+
+<div style="
+  width:90px;
+  display:flex;
+  justify-content:flex-start;
+  align-items:center;
+  gap:6px;
+  font-size:18px;
+">
+  ${getIpponCell(i,"white",0)}
+  ${getIpponCell(i,"white",1)}
+  <span style="
+    font-size:14px;
+    font-weight:700;
+    margin-left:2px;
+  ">
+    ${getFoulMark(i,"white")}
+  </span>
+</div>
+
+        <div style="font-size:28px;font-weight:700;">
+          ${getResultMark(i,"white")}
+        </div>
+      </div>
+    `;
+
+    frame.appendChild(block);
+  });
+
+  root.style.position = "fixed";
+  root.style.left = "-9999px";
+  document.body.appendChild(root);
+
+  const canvas = await html2canvas(root, {
+    scale: 2,
+    backgroundColor: "#f4f4f4"
+  });
+
+  const blob = await new Promise(resolve =>
+    canvas.toBlob(resolve, "image/jpeg", 0.95)
+  );
+
+  const file = new File([blob], "kendo_result.jpg", {
+    type: "image/jpeg"
+  });
+
+  root.remove();
+
+  if (navigator.share && navigator.canShare({ files: [file] })) {
+    await navigator.share({ files: [file] });
+  }
+});
 // ===== INIT =====
 
 if(!savedState){
@@ -1780,496 +1987,8 @@ renderMatches();
 renderPosNav();
 renderTop();
 
-/* =========================================================
-   EXPORT PDF (Parent-friendly)  v1
-   追加ブロック開始：ここだけ消せば完全に元に戻ります
-========================================================= */
-
-function escapeHTML(s){
-  return String(s ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-function getTeamTotals(){
-  // updateSummary()と同じルールで集計（WBFは2本扱い）
-  let redWin = 0, whiteWin = 0;
-  let redIppon = 0, whiteIppon = 0;
-
-  (AppState.matches || []).forEach(m=>{
-    if(!m || !m.ui) return;
-
-    const r = m.ui.red;
-    const w = m.ui.white;
-
-    // ippon count
-    let rCnt = 0;
-    if(r.ippon2 === "WBF"){
-      rCnt = 2;
-    }else{
-      if(r.ippon1) rCnt++;
-      if(r.ippon2) rCnt++;
-    }
-    redIppon += rCnt;
-
-    let wCnt = 0;
-    if(w.ippon2 === "WBF"){
-      wCnt = 2;
-    }else{
-      if(w.ippon1) wCnt++;
-      if(w.ippon2) wCnt++;
-    }
-    whiteIppon += wCnt;
-
-    // win count
-    if(m.ui.result.red === "〇") redWin++;
-    if(m.ui.result.white === "〇") whiteWin++;
-  });
-
-  return { redWin, whiteWin, redIppon, whiteIppon };
-}
-
-function buildMarksHTML(m, team){
-  if(!m || !m.ui) return "";
-
-  const ui = m.ui[team];
-
-  // WBFは見た目を簡潔にする（右下WBFだけで勝ち、という現在ロジックに合わせる）
-  if(ui.ippon2 === "WBF"){
-    return `<span class="mk">WBF</span>`;
-  }
-
-  const parts = [];
-
-  // 一本目（最初の一本なら丸）
-  if(ui.ippon1){
-    const isFirst = (m.firstIpponTeam === team && m.firstIpponAct === ui.ippon1);
-    if(isFirst){
-      parts.push(`<span class="mk circle">${escapeHTML(ui.ippon1)}</span>`);
-    }else{
-      parts.push(`<span class="mk">${escapeHTML(ui.ippon1)}</span>`);
-    }
-  }
-
-  // 二本目
-  if(ui.ippon2){
-    parts.push(`<span class="mk">${escapeHTML(ui.ippon2)}</span>`);
-  }
-
-  // 反則（表示上は▲だけ出す。あなたのUIは foulMark に▲が入る）
-  if(ui.foulMark){
-    parts.push(`<span class="mk">${escapeHTML(ui.foulMark)}</span>`);
-  }
-
-  // 延長一本勝ち（Complete由来）
-  if(ui.extraWin){
-    parts.push(`<span class="mk extra">1</span>`);
-  }
-
-  return parts.join("");
-}
-
-function getResultSymbol(m, team){
-
-  // mが存在しない位置（Daihyoや人数変更直後）対策
-  if(!m) return "";
-
-  // ui未生成対策
-  if(!m.ui) return "";
-
-  // result未確定対策
-  const r = m.ui.result?.[team];
-
-  // undefined/null/空文字 をすべて安全なHTMLに変換
-  if(r === "〇" || r === "×") return r;
-
-  return ""; // ← HTMLを壊さないための重要ポイント
-}
-
-
-function buildParentPDFHTML(){
-  // 念のため、seq→uiを最新化（画面表示と同一の根拠で出す）
-
-  const title = AppState.meta?.name || "";
-  const date  = AppState.meta?.date || "";
-
-  const redTeamName = AppState.teams?.red?.name || "Red";
-  const whiteTeamName = AppState.teams?.white?.name || "White";
-
-  const pos = AppState.positions || [];
-  const matches = AppState.matches || [];
-
-const compactClass = (pos.length === 6) ? "page compact" : "page";
-
-  const hasDaihyo = pos.includes("Daihyo");
-
-  // 通常ポジション（Daihyoは別枠にする）
-  const normalIndexes = pos
-    .map((p,i)=>({p,i}))
-    .filter(x=> x.p !== "Daihyo")
-    .map(x=> x.i);
-
-  // Daihyo index（あれば1つ想定）
-  const daihyoIndex = hasDaihyo ? pos.findIndex(p=>p === "Daihyo") : -1;
-
-  const totals = getTeamTotals();
-
-  const rowsHTML = normalIndexes.map(i=>{
-    const pLabel = escapeHTML(pos[i] || ("Pos " + (i+1)));
-
-    const redPlayer = escapeHTML(AppState.teams?.red?.players?.[i] || "");
-    const whitePlayer = escapeHTML(AppState.teams?.white?.players?.[i] || "");
-
-    const m = matches[i];
-
-    const redMarks = buildMarksHTML(m, "red");
-    const whiteMarks = buildMarksHTML(m, "white");
-
-    return `
-      <div class="matchBlock">
-        <div class="pos">${pLabel}</div>
-
-<div class="line redLine">
-  <div class="name">${redPlayer}</div>
-  <div class="marks">${redMarks}</div>
-<div class="res">${getResultSymbol(m,"red")}</div>
-</div>
-
-<div class="line whiteLine">
-  <div class="name">${whitePlayer}</div>
-  <div class="marks">${whiteMarks}</div>
-<div class="res">${getResultSymbol(m,"white")}</div>
-</div>
-      </div>
-    `;
-  }).join("");
-
-let daihyoHTML = "";
-if(daihyoIndex >= 0 && matches[daihyoIndex] && matches[daihyoIndex].ui){
-
-  const redPlayer = escapeHTML(AppState.teams?.red?.players?.[daihyoIndex] || "");
-  const whitePlayer = escapeHTML(AppState.teams?.white?.players?.[daihyoIndex] || "");
-  const m = matches[daihyoIndex];
-
-  const redMarks = buildMarksHTML(m, "red");
-  const whiteMarks = buildMarksHTML(m, "white");
-
-  daihyoHTML = `
-    <div class="sectionTitle">Daihyo</div>
-    <div class="matchBlock">
-      <div class="pos">Daihyo</div>
-
-<div class="line redLine">
-  <div class="name">${redPlayer}</div>
-  <div class="marks">${redMarks}</div>
-  <div class="res">${escapeHTML(getResultSymbol(m,"red"))}</div>
-</div>
-
-<div class="line whiteLine">
-  <div class="name">${whitePlayer}</div>
-  <div class="marks">${whiteMarks}</div>
-  <div class="res">${escapeHTML(getResultSymbol(m,"white"))}</div>
-</div>
-    </div>
-  `;
-}
-
-  // 親が最初に見たいのは「誰 vs 誰」と「最終結果」なので先に出す
-  const header2 = `${escapeHTML(redTeamName)} vs ${escapeHTML(whiteTeamName)}`;
-
-  return `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapeHTML(title || "Kendo Score")}</title>
-<style>
-  @page { size: A4; margin: 12mm; }
-  body{
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color:#111;
-  }
-
-  /* スマホでも読める“縦カード”幅に制限（A4中央配置） */
-  .page{
-    max-width: 520px;
-    margin: 0 auto;
-  }
-
-  .topBar{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-end;
-    gap:12px;
-    margin-bottom:10px;
-  }
-  .title{
-    font-size:22px;
-    font-weight:800;
-    line-height:1.1;
-  }
-  .date{
-    font-size:16px;
-    font-weight:700;
-    white-space:nowrap;
-  }
-  .subTitle{
-    margin-top:6px;
-    font-size:16px;
-    font-weight:800;
-    padding-bottom:10px;
-    border-bottom:2px solid #111;
-  }
-
-  .summary{
-    margin:14px 0 14px;
-    padding:12px;
-    border:1px solid #111;
-    border-radius:10px;
-  }
-  .sumRow{
-    display:flex;
-    justify-content:space-between;
-    gap:10px;
-    padding:6px 0;
-  }
-  .sumRow + .sumRow{ border-top:1px solid #ddd; }
-  .team{
-    font-weight:800;
-  }
-  .nums{
-    font-weight:800;
-    white-space:nowrap;
-  }
-
-  .sectionTitle{
-    margin:14px 0 8px;
-    font-size:16px;
-    font-weight:900;
-  }
-
-  .matchBlock{
-    padding:10px 0;
-    border-bottom:1px solid #ddd;
-  }
-/* ===== Compact mode (5 members) ===== */
-.compact .matchBlock{
-  padding:4px 0;
-}
-
-.compact .pos{
-  margin-bottom:2px;
-  font-size:13px;
-}
-
-.compact .line{
-  padding:2px 0;
-  grid-template-columns: 1fr 180px 44px;
-}
-
-.compact .name{
-  font-size:15px;
-}
-
-.compact .marks{
-  font-size:15px;
-  gap:6px;
-}
-
-.compact .res{
-  font-size:18px;
-}
-
-.compact .summary{
-  padding:8px;
-  margin:8px 0 10px;
-}
-
-.compact .sectionTitle{
-  margin:8px 0 4px;
-}
-
-.compact .title{
-  font-size:18px;
-}
-
-.compact .date{
-  font-size:13px;
-}
-
-  .pos{
-    font-size:14px;
-    font-weight:900;
-    margin-bottom:6px;
-  }
-.line{
-  display:grid;
-  grid-template-columns: 1fr 220px 60px; /* 名前 / 一本 / 勝敗 */
-  align-items:center;
-  gap:12px;
-  padding:6px 0;
-}
-
-.name{
-  font-size:18px;
-  font-weight:700;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
-.marks{
-  font-size:18px;
-  font-weight:900;
-  display:flex;
-  gap:10px;
-  align-items:center;
-  justify-content:center; /* 真ん中固定 */
-  white-space:nowrap;
-}
-
-.res{
-  font-size:24px;
-  font-weight:900;
-  text-align:right; /* 右端固定 */
-  white-space:nowrap;
-}
-  .mk{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    min-width: 20px;
-  }
-  .circle{
-    width:24px;
-    height:24px;
-    border:2px solid #111;
-    border-radius:50%;
-    line-height:1;
-  }
-  .extra{
-    width:24px;
-    height:24px;
-    border:2px solid #111;
-    border-radius:6px;
-    line-height:1;
-  }
-
-  /* 印刷時：余計な影等は無し。読みやすさ最優先 */
-</style>
-</head>
-<body>
-<div class="${compactClass}">
-
-    <div class="topBar">
-      <div class="title">${escapeHTML(title)}</div>
-      <div class="date">${escapeHTML(date)}</div>
-    </div>
-
-    <div class="subTitle">${header2}</div>
-
-    <div class="summary">
-      <div class="sumRow">
-        <div class="team">${escapeHTML(redTeamName)}</div>
-        <div class="nums">${totals.redWin} Wins &nbsp; ${totals.redIppon} Ippon</div>
-      </div>
-      <div class="sumRow">
-        <div class="team">${escapeHTML(whiteTeamName)}</div>
-        <div class="nums">${totals.whiteWin} Wins &nbsp; ${totals.whiteIppon} Ippon</div>
-      </div>
-    </div>
-
-    <div class="sectionTitle">Matches</div>
-    ${rowsHTML}
-
-    ${daihyoHTML}
-
-  </div>
-
-<script>
-</script>
-</body>
-</html>`;
-}
-
-function downloadHTMLFile(){
-  const html = buildParentPDFHTML();
-
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "kendo-score.html";
-  document.body.appendChild(a);
-  a.click();
-
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-/* ボタンに紐付け（元に戻す時はこの2行を消すだけ） */
-function openPrintWindow(){
-
-  const html = buildParentPDFHTML();
-
-  const w = window.open("", "_blank");
-  w.document.write(html);
-  w.document.close();
-
-  w.focus();
-  w.print();
-}
-
-const dlBtn = document.getElementById("dlBtn");
-
-if(dlBtn){
-  dlBtn.onclick = () => {
-    downloadHTMLFile();
-  };
-}
-
-
-const shareBtn = document.getElementById("shareBtn");
-
-if(shareBtn){
-  shareBtn.onclick = async () => {
-
-    const html = buildParentPDFHTML();
-    const blob = new Blob([html], { type: "text/html" });
-    const file = new File([blob], "kendo-score.html", { type: "text/html" });
-
-    if(
-      navigator.share &&
-      navigator.canShare &&
-      navigator.canShare({ files:[file] })
-    ){
-      await navigator.share({
-        title: "Kendo Score",
-        files: [file]
-      });
-    }
-    else if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){
-      openPrintWindow();
-    }
-    else{
-      downloadHTMLFile();
-    }
-
-  };
-}
-/* =========================================================
-   追加ブロック終了
-========================================================= */
 
 
 
 });
-
-
-
-
 
