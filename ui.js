@@ -1057,6 +1057,26 @@ html, body {
   min-height:0;
 }
 
+/* ===== Done Button Larger ===== */
+#closeEditor{
+  width:100%;
+  height:60px;          /* ← タップしやすく拡大 */
+
+  font-size:20px;
+  font-weight:700;
+
+  border:0;
+  border-radius:12px;
+
+  background:#2f6fed;
+  color:#fff;
+
+  margin-top:16px;
+}
+
+#closeEditor:active{
+  transform:translateY(1px);
+}
 
 `;
 document.head.appendChild(st);
@@ -1993,6 +2013,7 @@ renderTop();
 
 
 });
+
 
 
 
