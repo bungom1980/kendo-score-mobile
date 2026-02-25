@@ -839,7 +839,7 @@ color:#333;
 .cell.ipponBox .br{
   position:absolute;
   line-height:1;
-  font-size:24px;   /* ← これだけ追加 */
+  font-size:20px;   /* ← これだけ追加 */
 }
 
 .cell.ipponBox .bl{
@@ -1991,4 +1991,5 @@ renderTop();
 
 
 });
+
 
