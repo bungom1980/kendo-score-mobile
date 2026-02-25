@@ -880,17 +880,19 @@ color:#333;
 .ipponMark{
   display:flex;
 
-  width:28px;          /* ←拡大 */
-  height:28px;         /* ←拡大 */
+  width:28px;      /* 36 → 28 */
+  height:28px;     /* 36 → 28 */
 
   align-items:center;
   justify-content:center;
 
-  font-size:18px;      /* ←文字を大きく */
+  font-size:18px;  /* 22 → 18 */
+  line-height:1;   /* 念のため：文字の縦ズレ抑止 */
+
   font-weight:700;
 
   box-sizing:border-box;
-  border:3px solid transparent;  /* ←太く */
+  border:3px solid transparent;
   border-radius:50%;
 }
 
@@ -1991,6 +1993,7 @@ renderTop();
 
 
 });
+
 
 
 
